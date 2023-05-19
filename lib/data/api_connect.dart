@@ -90,6 +90,26 @@ class ApiProvider {
     }
   }
 
+  Future<num> convertCurrency(
+      String currencyFrom, String currencyTo, num amount) async {
+    final response = await _dio.get(
+      '${Connection.apiURL}$_convertCurrencyEndPoint',
+      queryParameters: {
+        'from': currencyFrom,
+        'to': currencyTo,
+        'amount': amount,
+      },
+      options: Options(
+        headers: _apiHeaders,
+      ),
+    );
+    if (_validResponse(response.statusCode!)) {
+      return response.data["result"];
+    } else {
+      throw response.data;
+    }
+  }
+
   /////////////////////////////////////////////////////////////////////
 
   // Validating Request.

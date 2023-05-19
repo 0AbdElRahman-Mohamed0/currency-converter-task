@@ -16,6 +16,7 @@ import 'package:dio/dio.dart';
 import 'package:flrx_validator/flrx_validator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:syncfusion_flutter_datepicker/datepicker.dart';
 
@@ -32,8 +33,9 @@ class _ConversionScreenState extends State<ConversionScreen> {
   CurrencyModel? _currencyFrom;
   CurrencyModel? _currencyTo;
   PickerDateRange? _dateRange;
-  String? _amount;
+  num? _amount;
   bool _convertOnly = false;
+  bool _isLoading = false;
 
   _submit() async {
     if (!_formKey.currentState!.validate()) {
@@ -48,8 +50,8 @@ class _ConversionScreenState extends State<ConversionScreen> {
         gravity: ToastGravity.BOTTOM,
       );
       return;
-    } else if (_dateRange?.startDate == null ||
-        _dateRange?.endDate == null && !_convertOnly) {
+    } else if ((_dateRange?.startDate == null || _dateRange?.endDate == null) &&
+        !_convertOnly) {
       Fluttertoast.showToast(
         toastLength: Toast.LENGTH_LONG,
         msg: 'Please select start and end range',
@@ -61,31 +63,45 @@ class _ConversionScreenState extends State<ConversionScreen> {
     _formKey.currentState!.save();
     FocusScope.of(context).unfocus();
     try {
-      await context.read<DataProvider>().getCurrencyChanges(
-          _dateRange!.startDate!.toString(),
-          _dateRange!.endDate!.toString(),
-          _currencyFrom!.code!,
-          _currencyTo!.code!);
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        CupertinoPageRoute(
-          builder: (_) => ResultScreen(
-            currencyFrom: _currencyFrom!,
-            currencyTo: _currencyTo!,
+      _isLoading = true;
+      setState(() {});
+      if (_convertOnly) {
+        await context.read<DataProvider>().convertCurrency(
+            _currencyFrom!.code!, _currencyTo!.code!, _amount ?? 1);
+      } else {
+        await context.read<DataProvider>().getCurrencyChanges(
+            _dateRange!.startDate!.toString(),
+            _dateRange!.endDate!.toString(),
+            _currencyFrom!.code!,
+            _currencyTo!.code!);
+        if (!mounted) return;
+
+        Navigator.push(
+          context,
+          CupertinoPageRoute(
+            builder: (_) => ResultScreen(
+              currencyFrom: _currencyFrom!,
+              currencyTo: _currencyTo!,
+            ),
           ),
-        ),
-      );
+        );
+      }
+      _isLoading = false;
+      setState(() {});
     } on DioError catch (e) {
+      _isLoading = false;
+      setState(() {});
       showDialog(
           context: context,
           builder: (BuildContext context) =>
               ErrorPopUp(message: e.readableError));
     } catch (e) {
+      _isLoading = false;
+      setState(() {});
       showDialog(
         context: context,
-        builder: (BuildContext context) => const ErrorPopUp(
-            message: 'Something went wrong please restart the application.'),
+        builder: (BuildContext context) =>
+            const ErrorPopUp(message: 'Something went wrong please try again.'),
       );
     }
   }
@@ -98,13 +114,21 @@ class _ConversionScreenState extends State<ConversionScreen> {
 
   _getData() async {
     try {
+      _isLoading = true;
+      setState(() {});
       await context.read<CurrenciesProvider>().getCurrencies();
+      _isLoading = false;
+      setState(() {});
     } on DioError catch (e) {
+      _isLoading = false;
+      setState(() {});
       showDialog(
           context: context,
           builder: (BuildContext context) =>
               ErrorPopUp(message: e.readableError));
     } catch (e) {
+      _isLoading = false;
+      setState(() {});
       showDialog(
         context: context,
         builder: (BuildContext context) => const ErrorPopUp(
@@ -116,12 +140,13 @@ class _ConversionScreenState extends State<ConversionScreen> {
   @override
   Widget build(BuildContext context) {
     final currencies = context.watch<CurrenciesProvider>().currencies;
+    final converted = context.watch<DataProvider>().convertResult;
     return Scaffold(
       appBar: AppBar(
         title: const Text(AppStrings.appName),
       ),
       body: CustomLoader(
-        isLoading: currencies == null,
+        isLoading: currencies == null || _isLoading,
         child: Form(
           key: _formKey,
           autovalidateMode: _autoValidate
@@ -161,8 +186,13 @@ class _ConversionScreenState extends State<ConversionScreen> {
                 InputFormField(
                   labelText: 'Amount',
                   above: true,
+                  initialValue: '1',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   hintText: 'Enter amount you want to convert',
-                  onSaved: (amount) => _amount = amount,
+                  onSaved: (amount) {
+                    _amount = num.parse(amount ?? '1');
+                  },
                   prefixIcon: const Icon(Icons.currency_exchange),
                   validator: Validator(
                     rules: [
@@ -214,6 +244,15 @@ class _ConversionScreenState extends State<ConversionScreen> {
                   ),
                 ],
               ),
+              if (_convertOnly && converted != null) ...{
+                20.ph,
+                Text(
+                  '$_amount ${_currencyFrom!.description} = $converted ${_currencyTo!.description}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: Dimensions.FONT_SIZE_DEFAULT,
+                      fontWeight: FontWeight.w700),
+                ),
+              },
               70.ph,
               CustomButton(
                 onTap: _submit,
