@@ -76,37 +76,42 @@ class _SimpleDropDownState<T> extends State<SimpleDropDown<T>> {
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w400,
               fontSize: Dimensions.FONT_SIZE_LARGE),
-          icon: widget.list!.isNotEmpty
+          icon: widget.list?.isNotEmpty ?? false
               ? const Icon(Icons.keyboard_arrow_down)
               : Icon(
                   Icons.keyboard_arrow_down,
                   color: AppColors.secondary,
                 ),
-          selectedItemBuilder: (context) => widget.list!
-              .map(
-                (e) => widget.small
-                    ? SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.22,
-                        child: Text(
-                          '$e',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                  fontWeight: FontWeight.w400,
-                                  fontSize: Dimensions.FONT_SIZE_LARGE),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      )
-                    : Text(
-                        '$e',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w400,
-                            fontSize: Dimensions.FONT_SIZE_LARGE),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-              )
-              .toList(),
+          selectedItemBuilder: (context) => widget.list != null
+              ? widget.list!
+                  .map(
+                    (e) => widget.small
+                        ? SizedBox(
+                            width: MediaQuery.of(context).size.width * 0.22,
+                            child: Text(
+                              '$e',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                      fontWeight: FontWeight.w400,
+                                      fontSize: Dimensions.FONT_SIZE_LARGE),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          )
+                        : Text(
+                            '$e',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(
+                                    fontWeight: FontWeight.w400,
+                                    fontSize: Dimensions.FONT_SIZE_LARGE),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                  )
+                  .toList()
+              : [],
           items: widget.list
               ?.map((T e) => DropdownMenuItem<T>(
                   value: e,

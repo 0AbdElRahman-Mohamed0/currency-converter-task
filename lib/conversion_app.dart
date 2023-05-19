@@ -1,6 +1,8 @@
+import 'package:currency_conversion/providers/currencies_provider.dart';
+import 'package:currency_conversion/providers/data_provider.dart';
 import 'package:currency_conversion/themes/app_theme.dart';
 import 'package:currency_conversion/utils/app_strings.dart';
-import 'package:currency_conversion/view/screens/conversion_screen.dart';
+import 'package:currency_conversion/view/screens/splash/splash_screen.dart';
 import 'package:flutter/material.dart';
 
 class ConversionApp extends StatelessWidget {
@@ -8,11 +10,18 @@ class ConversionApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppStrings.appName,
-      theme: appTheme(),
-      debugShowCheckedModeBanner: false,
-      home: const ConversionScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider<CurrenciesProvider>(
+            create: (_) => CurrenciesProvider()),
+        ChangeNotifierProvider<DataProvider>(create: (_) => DataProvider()),
+      ],
+      child: MaterialApp(
+        title: AppStrings.appName,
+        theme: appTheme(),
+        debugShowCheckedModeBanner: false,
+        home: const SplashScreen(),
+      ),
     );
   }
 }
